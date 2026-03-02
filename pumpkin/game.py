@@ -56,6 +56,9 @@ SHOT_TIME_SCALE = 2.0
 SHOT_PERSIST_SECONDS = 1.0
 FPS = 60
 MS_PER_SEC = 1000.0
+KEY_STEP = 1
+HOLD_DELAY_SECONDS = 1.0
+HOLD_REPEAT_INTERVAL = 0.08
 
 
 class Game:
@@ -116,6 +119,12 @@ class Game:
         )
         self.mammoth.set_pivot(board_bottom_center)
         self.shots: list[dict[str, Any]] = []
+        self.left_pressed = False
+        self.right_pressed = False
+        self.left_hold_time = 0.0
+        self.right_hold_time = 0.0
+        self.left_repeat_time = 0.0
+        self.right_repeat_time = 0.0
         side_x = board_origin[0] + self.board_size + self.padding_between
         side_height = self.board_size
         tile_height = (side_height - self.side_tile_gap * (SIDE_TILE_COUNT - 1)) // SIDE_TILE_COUNT
@@ -173,6 +182,23 @@ class Game:
         """
         if event.type == pygame.QUIT:
             self.running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                self.fire_shot()
+            elif event.key == pygame.K_UP:
+                if event.mod & pygame.KMOD_CTRL:
+                    self.angle_tile.adjust_angle(KEY_STEP)
+                else:
+                    self.force_tile.adjust_force(KEY_STEP)
+            elif event.key == pygame.K_DOWN:
+                if event.mod & pygame.KMOD_CTRL:
+                    self.angle_tile.adjust_angle(-KEY_STEP)
+                else:
+                    self.force_tile.adjust_force(-KEY_STEP)
+            elif event.key == pygame.K_LEFT:
+                self.mammoth.adjust_angle(-KEY_STEP)
+            elif event.key == pygame.K_RIGHT:
+                self.mammoth.adjust_angle(KEY_STEP)
         self.squirt_button.handle_event(event)
         self.angle_tile.handle_event(event)
         self.force_tile.handle_event(event)
@@ -189,6 +215,7 @@ class Game:
         self.scoreboard.set_counts(
             self.board.spawned_total, self.board.harvested_total
         )
+        self._update_direction_keys(dt)
         if not self.shots:
             return
         remaining = []
@@ -210,6 +237,50 @@ class Game:
             else:
                 remaining.append(shot)
         self.shots = remaining
+
+    def _update_direction_keys(self, dt: float) -> None:
+        """Handle held left/right key repeats after a delay.
+
+        Args:
+            dt: Delta time in seconds.
+        """
+        keys = pygame.key.get_pressed()
+        left_down = bool(keys[pygame.K_LEFT])
+        right_down = bool(keys[pygame.K_RIGHT])
+
+        if left_down:
+            if not self.left_pressed:
+                self.left_pressed = True
+                self.left_hold_time = 0.0
+                self.left_repeat_time = 0.0
+            else:
+                self.left_hold_time += dt
+                if self.left_hold_time >= HOLD_DELAY_SECONDS:
+                    self.left_repeat_time += dt
+                    while self.left_repeat_time >= HOLD_REPEAT_INTERVAL:
+                        self.mammoth.adjust_angle(-KEY_STEP)
+                        self.left_repeat_time -= HOLD_REPEAT_INTERVAL
+        else:
+            self.left_pressed = False
+            self.left_hold_time = 0.0
+            self.left_repeat_time = 0.0
+
+        if right_down:
+            if not self.right_pressed:
+                self.right_pressed = True
+                self.right_hold_time = 0.0
+                self.right_repeat_time = 0.0
+            else:
+                self.right_hold_time += dt
+                if self.right_hold_time >= HOLD_DELAY_SECONDS:
+                    self.right_repeat_time += dt
+                    while self.right_repeat_time >= HOLD_REPEAT_INTERVAL:
+                        self.mammoth.adjust_angle(KEY_STEP)
+                        self.right_repeat_time -= HOLD_REPEAT_INTERVAL
+        else:
+            self.right_pressed = False
+            self.right_hold_time = 0.0
+            self.right_repeat_time = 0.0
 
     def render(self) -> None:
         """Render the current frame."""

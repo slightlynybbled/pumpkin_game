@@ -71,6 +71,14 @@ class Mammoth:
         """
         self.angle = max(self.min_angle, min(self.max_angle, self.angle + delta))
 
+    def adjust_angle(self, delta: int) -> None:
+        """Adjust the mammoth angle by a signed delta.
+
+        Args:
+            delta: Signed change in degrees.
+        """
+        self._apply_angle_delta(delta)
+
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle mouse click events.
 

@@ -67,6 +67,14 @@ class ForceAdjustmentTile:
         """
         self.force = max(self.min_force, min(self.max_force, self.force + delta))
 
+    def adjust_force(self, delta: int) -> None:
+        """Adjust the force by a signed delta.
+
+        Args:
+            delta: Signed change in force.
+        """
+        self._apply_force_delta(delta)
+
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle mouse click events.
 
