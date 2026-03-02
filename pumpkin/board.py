@@ -1,7 +1,7 @@
 """Board state, water simulation, and pumpkin management."""
 
 import random
-from typing import Tuple
+from typing import Optional, Tuple
 
 import pygame
 
@@ -49,11 +49,13 @@ class Board:
         self.max_water = WATER_MAX
         self.min_water = WATER_MIN
         self.dry_rate = DRY_RATE_PER_SEC
-        self.water = [
-            [random.randint(self.min_water, self.max_water) for _ in range(cols)]
+        self.water: list[list[float]] = [
+            [float(random.randint(self.min_water, self.max_water)) for _ in range(cols)]
             for _ in range(rows)
         ]
-        self.pumpkins = [[None for _ in range(cols)] for _ in range(rows)]
+        self.pumpkins: list[list[Optional[Pumpkin]]] = [
+            [None for _ in range(cols)] for _ in range(rows)
+        ]
         self.sprout_chance_per_sec = SPROUT_CHANCE_PER_SEC
         self.harvested_total = 0
         self.spawned_total = 0

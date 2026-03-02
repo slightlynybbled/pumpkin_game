@@ -1,7 +1,7 @@
 """Mammoth tile rendering and rotation control."""
 
 import pygame
-from typing import Tuple
+from typing import Optional, Tuple
 
 MAMMOTH_COLOR = (139, 94, 60)
 ANGLE_MIN = -90
@@ -39,7 +39,7 @@ class Mammoth:
         self.button_padding = BUTTON_PADDING
         self.double_click_ms = DOUBLE_CLICK_MS
         self.last_click_time = {"plus": 0, "minus": 0}
-        self.pivot = None
+        self.pivot: Optional[tuple[int, int]] = None
 
     def set_pivot(self, pivot: tuple[int, int]) -> None:
         """Set the rotation pivot point.
