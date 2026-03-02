@@ -65,6 +65,7 @@ MS_PER_SEC = 1000.0
 KEY_STEP = 1
 HOLD_DELAY_SECONDS = 0.4
 HOLD_REPEAT_INTERVAL = 0.04
+FORCE_GAMMA = 0.7
 INFO_LINES = (
     "Shortcuts",
     "Space: squirt",
@@ -488,8 +489,10 @@ class Game:
             return
 
         theta = math.radians(vertical_angle)
-        scale = math.sqrt(self.board_size * self.gravity) / self.force_tile.max_force
-        velocity = force * scale
+        norm_force = force / self.force_tile.max_force
+        scaled_force = norm_force ** FORCE_GAMMA
+        max_velocity = math.sqrt(self.board_size * self.gravity)
+        velocity = scaled_force * max_velocity
         vx = velocity * math.cos(theta)
         vy = velocity * math.sin(theta)
         flight_time = (FLIGHT_TIME_MULTIPLIER * vy) / self.gravity if vy > 0 else 0

@@ -22,6 +22,13 @@ WATER_NEIGHBOR_RATIO = 0.2
 PUMPKIN_COLOR = (232, 144, 64)
 PUMPKIN_MAX_RADIUS_MARGIN = 6
 PUMPKIN_MIN_RADIUS = 3
+PUMPKIN_SPAWN_MIN_WATER = 3
+PUMPKIN_SPAWN_MAX_WATER = 7
+HARVEST_MARK_DURATION = 1.0
+HARVEST_MARK_COLOR = (72, 196, 112)
+DEATH_MARK_COLOR = (220, 74, 74)
+MARK_LINE_WIDTH = 3
+MARK_SIZE_RATIO = 0.35
 WEATHER_RAINY = "rainy"
 WEATHER_CLOUDY = "cloudy"
 WEATHER_SUNNY = "sunny"
@@ -68,6 +75,7 @@ class Board:
         self.spawned_total = 0
         self.wet_color = WET_COLOR
         self.dry_color = DRY_COLOR
+        self.marks: list[dict[str, object]] = []
         self._seed_pumpkins(INITIAL_PUMPKINS)
 
     def _seed_pumpkins(self, count: int) -> None:
@@ -76,9 +84,15 @@ class Board:
         Args:
             count: Number of pumpkins to place.
         """
-        total_tiles = self.rows * self.cols
-        count = min(count, total_tiles)
-        indices = random.sample(range(total_tiles), count)
+        eligible = [
+            index
+            for index in range(self.rows * self.cols)
+            if PUMPKIN_SPAWN_MIN_WATER
+            <= self.water[index // self.cols][index % self.cols]
+            <= PUMPKIN_SPAWN_MAX_WATER
+        ]
+        count = min(count, len(eligible))
+        indices = random.sample(eligible, count)
         for index in indices:
             row = index // self.cols
             col = index % self.cols
@@ -106,16 +120,21 @@ class Board:
                     )
                 if self.pumpkins[row][col] is None:
                     if random.random() < self.sprout_chance_per_sec * dt:
-                        self.pumpkins[row][col] = Pumpkin()
-                        self.spawned_total += 1
+                        water_level = self.water[row][col]
+                        if PUMPKIN_SPAWN_MIN_WATER <= water_level <= PUMPKIN_SPAWN_MAX_WATER:
+                            self.pumpkins[row][col] = Pumpkin()
+                            self.spawned_total += 1
                 pumpkin = self.pumpkins[row][col]
                 if pumpkin:
                     harvested = pumpkin.update(dt, self.water[row][col])
                     if harvested:
                         self.harvested_total += 1
+                        self._add_mark(row, col, HARVEST_MARK_COLOR)
                         self.pumpkins[row][col] = None
                     elif pumpkin.dead:
+                        self._add_mark(row, col, DEATH_MARK_COLOR)
                         self.pumpkins[row][col] = None
+        self._update_marks(dt)
 
     def add_water(self, row: int, col: int, quantity: int) -> None:
         """Apply water to a tile and its neighbors.
@@ -172,6 +191,35 @@ class Board:
         b = int(self.dry_color[2] + (self.wet_color[2] - self.dry_color[2]) * ratio)
         return (r, g, b)
 
+    def _add_mark(self, row: int, col: int, color: Tuple[int, int, int]) -> None:
+        """Add a temporary mark at a tile.
+
+        Args:
+            row: Tile row.
+            col: Tile column.
+            color: RGB color for the mark.
+        """
+        rect = pygame.Rect(
+            self.origin[0] + col * self.tile_size,
+            self.origin[1] + row * self.tile_size,
+            self.tile_size,
+            self.tile_size,
+        )
+        self.marks.append({"center": rect.center, "color": color, "time": 0.0})
+
+    def _update_marks(self, dt: float) -> None:
+        """Advance mark timers and remove expired ones.
+
+        Args:
+            dt: Delta time in seconds.
+        """
+        remaining = []
+        for mark in self.marks:
+            mark["time"] = float(mark["time"]) + dt
+            if mark["time"] < HARVEST_MARK_DURATION:
+                remaining.append(mark)
+        self.marks = remaining
+
     def draw(self, surface: pygame.Surface) -> None:
         """Draw the board and any pumpkins.
 
@@ -196,3 +244,48 @@ class Board:
                     radius = max(PUMPKIN_MIN_RADIUS, int(max_radius * ratio))
                     center = rect.center
                     pygame.draw.circle(surface, PUMPKIN_COLOR, center, radius)
+        self._draw_marks(surface)
+
+    def _draw_marks(self, surface: pygame.Surface) -> None:
+        """Draw temporary harvest/death marks.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
+        if not self.marks:
+            return
+        mark_size = int(self.tile_size * MARK_SIZE_RATIO)
+        half = mark_size // 2
+        for mark in self.marks:
+            cx, cy = mark["center"]
+            color = mark["color"]
+            if color == HARVEST_MARK_COLOR:
+                pygame.draw.line(
+                    surface,
+                    color,
+                    (cx - half, cy),
+                    (cx - half // 3, cy + half),
+                    MARK_LINE_WIDTH,
+                )
+                pygame.draw.line(
+                    surface,
+                    color,
+                    (cx - half // 3, cy + half),
+                    (cx + half, cy - half),
+                    MARK_LINE_WIDTH,
+                )
+            else:
+                pygame.draw.line(
+                    surface,
+                    color,
+                    (cx - half, cy - half),
+                    (cx + half, cy + half),
+                    MARK_LINE_WIDTH,
+                )
+                pygame.draw.line(
+                    surface,
+                    color,
+                    (cx - half, cy + half),
+                    (cx + half, cy - half),
+                    MARK_LINE_WIDTH,
+                )
