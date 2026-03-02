@@ -1,33 +1,43 @@
 import pygame
 
+FONT_SIZE = 24
+BORDER_COLOR = (120, 126, 140)
+FACE_COLOR = (230, 233, 240)
+FACE_RADIUS_SCALE = 3
+FACE_BORDER_WIDTH = 2
+HAND_WIDTH = 2
+TITLE_Y_OFFSET = 14
+HAND_TOP_MARGIN = 4
+HAND_RIGHT_MARGIN = 6
+
 
 class ClockTile:
     def __init__(self, rect):
         self.rect = pygame.Rect(rect)
-        self.border_color = (120, 126, 140)
-        self.face_color = (230, 233, 240)
-        self.font = pygame.font.Font(None, 24)
+        self.border_color = BORDER_COLOR
+        self.face_color = FACE_COLOR
+        self.font = pygame.font.Font(None, FONT_SIZE)
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
         center = self.rect.center
-        radius = min(self.rect.width, self.rect.height) // 3
+        radius = min(self.rect.width, self.rect.height) // FACE_RADIUS_SCALE
         if radius > 0:
-            pygame.draw.circle(surface, self.face_color, center, radius, 2)
+            pygame.draw.circle(surface, self.face_color, center, radius, FACE_BORDER_WIDTH)
             pygame.draw.line(
                 surface,
                 self.face_color,
                 center,
-                (center[0], center[1] - radius + 4),
-                2,
+                (center[0], center[1] - radius + HAND_TOP_MARGIN),
+                HAND_WIDTH,
             )
             pygame.draw.line(
                 surface,
                 self.face_color,
                 center,
-                (center[0] + radius - 6, center[1]),
-                2,
+                (center[0] + radius - HAND_RIGHT_MARGIN, center[1]),
+                HAND_WIDTH,
             )
         title = self.font.render("CLOCK", True, self.face_color)
-        title_rect = title.get_rect(center=(self.rect.centerx, self.rect.top + 14))
+        title_rect = title.get_rect(center=(self.rect.centerx, self.rect.top + TITLE_Y_OFFSET))
         surface.blit(title, title_rect)

@@ -1,16 +1,28 @@
+HEALTH_START = 0
+HEALTH_MAX = 10
+WATER_MIN = 0
+WATER_MAX = 10
+GROW_MIN = 3
+GROW_MAX = 7
+PERFECT_WATER = 5
+GROW_RATE_NORMAL = 0.5
+GROW_RATE_PERFECT = 1.0
+STAGNANT_LIMIT = 10.0
+
+
 class Pumpkin:
     def __init__(self):
-        self.health = 0
-        self.max_health = 10
-        self.min_water = 0
-        self.max_water = 10
-        self.grow_min = 3
-        self.grow_max = 7
-        self.perfect_water = 5
+        self.health = HEALTH_START
+        self.max_health = HEALTH_MAX
+        self.min_water = WATER_MIN
+        self.max_water = WATER_MAX
+        self.grow_min = GROW_MIN
+        self.grow_max = GROW_MAX
+        self.perfect_water = PERFECT_WATER
         self.harvested = False
         self.dead = False
         self.stagnant_time = 0.0
-        self.stagnant_limit = 10.0
+        self.stagnant_limit = STAGNANT_LIMIT
 
     def update(self, dt, water_level):
         if self.harvested:
@@ -24,7 +36,7 @@ class Pumpkin:
                 self.dead = True
             return False
 
-        rate = 1.0 if water == self.perfect_water else 0.5
+        rate = GROW_RATE_PERFECT if water == self.perfect_water else GROW_RATE_NORMAL
         prev_health = self.health
         self.health = min(self.max_health, self.health + rate * dt)
         if self.health > prev_health:

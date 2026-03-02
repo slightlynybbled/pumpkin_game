@@ -1,16 +1,33 @@
 import pygame
 
+MAMMOTH_COLOR = (139, 94, 60)
+ANGLE_MIN = -90
+ANGLE_MAX = 90
+BUTTON_MIN_SIZE = 26
+BUTTON_WIDTH_RATIO = 4
+BUTTON_PADDING = 10
+DOUBLE_CLICK_MS = 350
+BODY_WIDTH_RATIO = 0.32
+BODY_HEIGHT_RATIO = 0.5
+HEAD_RADIUS_RATIO = 0.35
+TRUNK_LENGTH_RATIO = 0.3
+TRUNK_THICKNESS = 4
+BUTTON_BORDER_WIDTH = 2
+BUTTON_RADIUS = 4
+FONT_SIZE = 24
+MOUSE_LEFT_BUTTON = 1
+
 
 class Mammoth:
     def __init__(self, rect):
         self.rect = pygame.Rect(rect)
-        self.color = (139, 94, 60)
+        self.color = MAMMOTH_COLOR
         self.angle = 0
-        self.min_angle = -90
-        self.max_angle = 90
-        self.button_size = max(26, self.rect.width // 4)
-        self.button_padding = 10
-        self.double_click_ms = 350
+        self.min_angle = ANGLE_MIN
+        self.max_angle = ANGLE_MAX
+        self.button_size = max(BUTTON_MIN_SIZE, self.rect.width // BUTTON_WIDTH_RATIO)
+        self.button_padding = BUTTON_PADDING
+        self.double_click_ms = DOUBLE_CLICK_MS
         self.last_click_time = {"plus": 0, "minus": 0}
         self.pivot = None
 
@@ -34,7 +51,7 @@ class Mammoth:
         self.angle = max(self.min_angle, min(self.max_angle, self.angle + delta))
 
     def handle_event(self, event):
-        if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
+        if event.type != pygame.MOUSEBUTTONDOWN or event.button != MOUSE_LEFT_BUTTON:
             return
         minus_rect, plus_rect = self._button_rects()
         now = pygame.time.get_ticks()
@@ -48,11 +65,11 @@ class Mammoth:
             self.last_click_time["minus"] = now
 
     def draw(self, surface):
-        body_width = int(self.rect.width * 0.32)
-        body_height = int(self.rect.height * 0.5)
-        head_radius = int(body_width * 0.35)
-        trunk_length = int(body_height * 0.3)
-        trunk_thickness = 4
+        body_width = int(self.rect.width * BODY_WIDTH_RATIO)
+        body_height = int(self.rect.height * BODY_HEIGHT_RATIO)
+        head_radius = int(body_width * HEAD_RADIUS_RATIO)
+        trunk_length = int(body_height * TRUNK_LENGTH_RATIO)
+        trunk_thickness = TRUNK_THICKNESS
 
         shape_width = max(body_width, head_radius * 2) + trunk_thickness
         shape_height = body_height + head_radius * 2 + trunk_length
@@ -83,9 +100,13 @@ class Mammoth:
             rotated_rect.center = (center_x, center_y)
         surface.blit(rotated, rotated_rect)
 
-        pygame.draw.rect(surface, self.color, minus_rect, 2, border_radius=4)
-        pygame.draw.rect(surface, self.color, plus_rect, 2, border_radius=4)
-        font = pygame.font.Font(None, 24)
+        pygame.draw.rect(
+            surface, self.color, minus_rect, BUTTON_BORDER_WIDTH, border_radius=BUTTON_RADIUS
+        )
+        pygame.draw.rect(
+            surface, self.color, plus_rect, BUTTON_BORDER_WIDTH, border_radius=BUTTON_RADIUS
+        )
+        font = pygame.font.Font(None, FONT_SIZE)
         minus_label = font.render("-", True, self.color)
         plus_label = font.render("+", True, self.color)
         surface.blit(minus_label, minus_label.get_rect(center=minus_rect.center))

@@ -4,27 +4,49 @@ import pygame
 
 from pumpkin.pumpkin import Pumpkin
 
+DEFAULT_ROWS = 8
+DEFAULT_COLS = 8
+DEFAULT_TILE_SIZE = 64
+WATER_MIN = 0
+WATER_MAX = 10
+DRY_RATE_PER_SEC = 0.1
+WET_COLOR = (82, 50, 28)
+DRY_COLOR = (176, 126, 82)
+SPROUT_CHANCE_PER_SEC = 0.002
+INITIAL_PUMPKINS = 3
+WATER_CENTER_RATIO = 0.5
+WATER_NEIGHBOR_RATIO = 0.2
+PUMPKIN_COLOR = (232, 144, 64)
+PUMPKIN_MAX_RADIUS_MARGIN = 6
+PUMPKIN_MIN_RADIUS = 3
+
 
 class Board:
-    def __init__(self, rows=8, cols=8, tile_size=64, origin=(0, 0)):
+    def __init__(
+        self,
+        rows=DEFAULT_ROWS,
+        cols=DEFAULT_COLS,
+        tile_size=DEFAULT_TILE_SIZE,
+        origin=(0, 0),
+    ):
         self.rows = rows
         self.cols = cols
         self.tile_size = tile_size
         self.origin = origin
-        self.max_water = 10
-        self.min_water = 0
-        self.dry_rate = 0.1
+        self.max_water = WATER_MAX
+        self.min_water = WATER_MIN
+        self.dry_rate = DRY_RATE_PER_SEC
         self.water = [
             [random.randint(self.min_water, self.max_water) for _ in range(cols)]
             for _ in range(rows)
         ]
         self.pumpkins = [[None for _ in range(cols)] for _ in range(rows)]
-        self.sprout_chance_per_sec = 0.002
+        self.sprout_chance_per_sec = SPROUT_CHANCE_PER_SEC
         self.harvested_total = 0
         self.spawned_total = 0
-        self.wet_color = (82, 50, 28)
-        self.dry_color = (176, 126, 82)
-        self._seed_pumpkins(3)
+        self.wet_color = WET_COLOR
+        self.dry_color = DRY_COLOR
+        self._seed_pumpkins(INITIAL_PUMPKINS)
 
     def _seed_pumpkins(self, count):
         total_tiles = self.rows * self.cols
@@ -58,8 +80,8 @@ class Board:
     def add_water(self, row, col, quantity):
         if not (0 <= row < self.rows and 0 <= col < self.cols):
             return
-        center_amount = int(round(quantity * 0.5))
-        neighbor_amount = int(round(quantity * 0.2))
+        center_amount = int(round(quantity * WATER_CENTER_RATIO))
+        neighbor_amount = int(round(quantity * WATER_NEIGHBOR_RATIO))
         self._apply_water(row, col, center_amount)
         for dr in (-1, 0, 1):
             for dc in (-1, 0, 1):
@@ -96,8 +118,8 @@ class Board:
                 pygame.draw.rect(surface, color, rect)
                 pumpkin = self.pumpkins[row][col]
                 if pumpkin:
-                    max_radius = self.tile_size // 2 - 6
+                    max_radius = self.tile_size // 2 - PUMPKIN_MAX_RADIUS_MARGIN
                     ratio = min(pumpkin.health, pumpkin.max_health) / pumpkin.max_health
-                    radius = max(3, int(max_radius * ratio))
+                    radius = max(PUMPKIN_MIN_RADIUS, int(max_radius * ratio))
                     center = rect.center
-                    pygame.draw.circle(surface, (232, 144, 64), center, radius)
+                    pygame.draw.circle(surface, PUMPKIN_COLOR, center, radius)

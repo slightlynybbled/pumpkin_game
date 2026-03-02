@@ -12,21 +12,63 @@ from pumpkin.scoreboard import Scoreboard
 from pumpkin.squirt import SquirtButton
 from pumpkin.weather_adjustment import WeatherAdjustmentTile
 
+GRAVITY = 9.8
+GRAVITY_HALF = 0.5
+FLIGHT_TIME_MULTIPLIER = 2.0
+MIN_FLIGHT_TIME = 0.01
+BOARD_TILES = 8
+TILE_SIZE = 60
+PADDING_TOP = 24
+PADDING_BETWEEN = 16
+PADDING_LEFT = 24
+PADDING_RIGHT = 24
+PANEL_HEIGHT = 72
+PADDING_BOTTOM = 24
+SIDE_TILE_WIDTH_SCALE = 1.5
+SIDE_TILE_GAP = 12
+SIDE_TILE_COUNT = 5
+PANEL_COLUMNS = 3
+PANEL_INDEX_SCOREBOARD = 0
+PANEL_INDEX_MAMMOTH = 1
+PANEL_INDEX_SQUIRT = 2
+SIDE_TILE_INDEX_ANGLE = 0
+SIDE_TILE_INDEX_FORCE = 1
+SIDE_TILE_INDEX_QUANTITY = 2
+SIDE_TILE_INDEX_WEATHER = 3
+SIDE_TILE_INDEX_CLOCK = 4
+BACKGROUND_COLOR = (20, 22, 30)
+ARC_COLOR = (120, 180, 255)
+ARC_STEPS = 24
+ARC_LINE_WIDTH = 2
+ARC_SCALE_POS = 0.3
+ARC_SCALE_NEG = -0.3
+ARROW_BASE_OFFSET = 6
+ARROW_TIP_OFFSET = 10
+ARROW_SIDE_OFFSET = 6
+ARROW_OUTSET = 8
+SHOT_RADIUS_BASE = 4
+SHOT_RADIUS_STEP = 2
+SHOT_RADIUS_MARGIN = 6
+SHOT_TIME_SCALE = 2.0
+SHOT_PERSIST_SECONDS = 1.0
+FPS = 60
+MS_PER_SEC = 1000.0
+
 
 class Game:
     def __init__(self):
         pygame.init()
-        self.gravity = 9.8
-        self.tile_size = 60
-        self.board_size = self.tile_size * 8
-        self.padding_top = 24
-        self.padding_between = 16
-        self.padding_left = 24
-        self.padding_right = 24
-        self.panel_height = 72
-        self.padding_bottom = 24
-        self.side_tile_width = int(self.tile_size * 1.5)
-        self.side_tile_gap = 12
+        self.gravity = GRAVITY
+        self.tile_size = TILE_SIZE
+        self.board_size = self.tile_size * BOARD_TILES
+        self.padding_top = PADDING_TOP
+        self.padding_between = PADDING_BETWEEN
+        self.padding_left = PADDING_LEFT
+        self.padding_right = PADDING_RIGHT
+        self.panel_height = PANEL_HEIGHT
+        self.padding_bottom = PADDING_BOTTOM
+        self.side_tile_width = int(self.tile_size * SIDE_TILE_WIDTH_SCALE)
+        self.side_tile_gap = SIDE_TILE_GAP
         self.screen_width = (
             self.padding_left
             + self.board_size
@@ -51,11 +93,15 @@ class Game:
         self.board_rect = pygame.Rect(board_origin, (self.board_size, self.board_size))
         panel_y = board_origin[1] + self.board_size + self.padding_between
         panel_x = board_origin[0]
-        panel_width = self.board_size // 3
-        self.scoreboard = Scoreboard((panel_x, panel_y, panel_width, self.panel_height))
-        self.mammoth = Mammoth((panel_x + panel_width, panel_y, panel_width, self.panel_height))
+        panel_width = self.board_size // PANEL_COLUMNS
+        self.scoreboard = Scoreboard(
+            (panel_x + panel_width * PANEL_INDEX_SCOREBOARD, panel_y, panel_width, self.panel_height)
+        )
+        self.mammoth = Mammoth(
+            (panel_x + panel_width * PANEL_INDEX_MAMMOTH, panel_y, panel_width, self.panel_height)
+        )
         self.squirt_button = SquirtButton(
-            (panel_x + panel_width * 2, panel_y, panel_width, self.panel_height),
+            (panel_x + panel_width * PANEL_INDEX_SQUIRT, panel_y, panel_width, self.panel_height),
             on_click=self.fire_shot,
         )
         board_bottom_center = (
@@ -66,14 +112,19 @@ class Game:
         self.shots = []
         side_x = board_origin[0] + self.board_size + self.padding_between
         side_height = self.board_size
-        tile_height = (side_height - self.side_tile_gap * 4) // 5
+        tile_height = (side_height - self.side_tile_gap * (SIDE_TILE_COUNT - 1)) // SIDE_TILE_COUNT
         self.angle_tile = AngleAdjustmentTile(
-            (side_x, board_origin[1], self.side_tile_width, tile_height)
+            (
+                side_x,
+                board_origin[1] + SIDE_TILE_INDEX_ANGLE * (tile_height + self.side_tile_gap),
+                self.side_tile_width,
+                tile_height,
+            )
         )
         self.force_tile = ForceAdjustmentTile(
             (
                 side_x,
-                board_origin[1] + (tile_height + self.side_tile_gap),
+                board_origin[1] + SIDE_TILE_INDEX_FORCE * (tile_height + self.side_tile_gap),
                 self.side_tile_width,
                 tile_height,
             )
@@ -81,7 +132,7 @@ class Game:
         self.quantity_tile = QuantityAdjustmentTile(
             (
                 side_x,
-                board_origin[1] + 2 * (tile_height + self.side_tile_gap),
+                board_origin[1] + SIDE_TILE_INDEX_QUANTITY * (tile_height + self.side_tile_gap),
                 self.side_tile_width,
                 tile_height,
             )
@@ -93,7 +144,7 @@ class Game:
             WeatherAdjustmentTile(
                 (
                     side_x,
-                    board_origin[1] + 3 * (tile_height + self.side_tile_gap),
+                    board_origin[1] + SIDE_TILE_INDEX_WEATHER * (tile_height + self.side_tile_gap),
                     self.side_tile_width,
                     tile_height,
                 )
@@ -101,7 +152,7 @@ class Game:
             ClockTile(
                 (
                     side_x,
-                    board_origin[1] + 4 * (tile_height + self.side_tile_gap),
+                    board_origin[1] + SIDE_TILE_INDEX_CLOCK * (tile_height + self.side_tile_gap),
                     self.side_tile_width,
                     tile_height,
                 )
@@ -128,7 +179,7 @@ class Game:
         for shot in self.shots:
             if shot["landed"]:
                 shot["landed_time"] += dt
-                if shot["landed_time"] < 1.0:
+                if shot["landed_time"] < SHOT_PERSIST_SECONDS:
                     remaining.append(shot)
                 continue
             shot["t"] += dt * shot["time_scale"]
@@ -145,7 +196,7 @@ class Game:
         self.shots = remaining
 
     def render(self):
-        self.screen.fill((20, 22, 30))
+        self.screen.fill(BACKGROUND_COLOR)
         self.board.draw(self.screen)
         self.scoreboard.draw(self.screen)
         self.mammoth.draw(self.screen)
@@ -158,7 +209,7 @@ class Game:
     def _draw_shots(self):
         if not self.shots:
             return
-        color = (120, 180, 255)
+        color = ARC_COLOR
         for shot in self.shots:
             if shot["landed"]:
                 if shot["in_board"]:
@@ -170,14 +221,14 @@ class Game:
                 continue
 
             path_points = []
-            steps = 24
+            steps = ARC_STEPS
             for i in range(steps + 1):
                 t = shot["flight_time"] * (i / steps)
                 pos = self._shot_position(shot, t)
                 if pos:
                     path_points.append((int(pos[0]), int(pos[1])))
             if len(path_points) >= 2:
-                pygame.draw.lines(self.screen, color, False, path_points, 2)
+                pygame.draw.lines(self.screen, color, False, path_points, ARC_LINE_WIDTH)
 
             current_pos = self._shot_position(shot, shot["t"])
             if current_pos:
@@ -195,23 +246,23 @@ class Game:
             return
         ux, uy = dx / length, dy / length
         perp = (-uy, ux)
-        base = (pos[0] - ux * 6, pos[1] - uy * 6)
-        tip = (pos[0] + ux * 10, pos[1] + uy * 10)
-        left = (base[0] + perp[0] * 6, base[1] + perp[1] * 6)
-        right = (base[0] - perp[0] * 6, base[1] - perp[1] * 6)
-        pygame.draw.polygon(self.screen, (120, 180, 255), [tip, left, right])
+        base = (pos[0] - ux * ARROW_BASE_OFFSET, pos[1] - uy * ARROW_BASE_OFFSET)
+        tip = (pos[0] + ux * ARROW_TIP_OFFSET, pos[1] + uy * ARROW_TIP_OFFSET)
+        left = (base[0] + perp[0] * ARROW_SIDE_OFFSET, base[1] + perp[1] * ARROW_SIDE_OFFSET)
+        right = (base[0] - perp[0] * ARROW_SIDE_OFFSET, base[1] - perp[1] * ARROW_SIDE_OFFSET)
+        pygame.draw.polygon(self.screen, ARC_COLOR, [tip, left, right])
 
     def _shot_position(self, shot, t):
         vx = shot["vx"]
         vy = shot["vy"]
         x = vx * t
-        y = vy * t - 0.5 * self.gravity * t * t
+        y = vy * t - GRAVITY_HALF * self.gravity * t * t
         if y < 0:
             y = 0
         origin = shot["origin"]
         dir_x, dir_y = shot["direction"]
         perp_x, perp_y = -dir_y, dir_x
-        arc_scale = -0.3 if shot["direction_angle"] < 0 else 0.3
+        arc_scale = ARC_SCALE_NEG if shot["direction_angle"] < 0 else ARC_SCALE_POS
         return (
             origin[0] + dir_x * x + perp_x * (-y * arc_scale),
             origin[1] + dir_y * x + perp_y * (-y * arc_scale),
@@ -240,7 +291,7 @@ class Game:
         if not candidates:
             return origin
         t, x, y, normal = min(candidates, key=lambda item: item[0])
-        return (x + normal[0] * 8, y + normal[1] * 8)
+        return (x + normal[0] * ARROW_OUTSET, y + normal[1] * ARROW_OUTSET)
 
     def fire_shot(self):
         force = self.force_tile.force
@@ -260,7 +311,7 @@ class Game:
         velocity = force * scale
         vx = velocity * math.cos(theta)
         vy = velocity * math.sin(theta)
-        flight_time = (2 * vy) / self.gravity if vy > 0 else 0
+        flight_time = (FLIGHT_TIME_MULTIPLIER * vy) / self.gravity if vy > 0 else 0
         range_distance = vx * flight_time
         azimuth = math.radians(direction_angle)
         dx = math.sin(azimuth)
@@ -268,8 +319,8 @@ class Game:
         landing = (origin[0] + dx * range_distance, origin[1] + dy * range_distance)
 
         in_board = self.board_rect.collidepoint(landing)
-        radius = 4 + (quantity - 1) * 2
-        radius = min(radius, self.tile_size // 2 - 6)
+        radius = SHOT_RADIUS_BASE + (quantity - 1) * SHOT_RADIUS_STEP
+        radius = min(radius, self.tile_size // 2 - SHOT_RADIUS_MARGIN)
         if in_board:
             col = int((landing[0] - self.board_rect.left) // self.tile_size)
             row = int((landing[1] - self.board_rect.top) // self.tile_size)
@@ -279,44 +330,44 @@ class Game:
             )
             self.shots.append(
                 {
-                "origin": origin,
-                "direction": (dx, dy),
-                "direction_angle": direction_angle,
-                "t": 0.0,
-                "flight_time": max(flight_time, 0.01),
-                "vx": vx,
-                "vy": vy,
-                "radius": radius,
-                "landing": (int(tile_center[0]), int(tile_center[1])),
-                "tile": (row, col),
-                "quantity": quantity,
-                "water_applied": False,
-                "in_board": True,
-                "landed": False,
-                "time_scale": 2.0,
-                "landed_time": 0.0,
-            }
+                    "origin": origin,
+                    "direction": (dx, dy),
+                    "direction_angle": direction_angle,
+                    "t": 0.0,
+                    "flight_time": max(flight_time, MIN_FLIGHT_TIME),
+                    "vx": vx,
+                    "vy": vy,
+                    "radius": radius,
+                    "landing": (int(tile_center[0]), int(tile_center[1])),
+                    "tile": (row, col),
+                    "quantity": quantity,
+                    "water_applied": False,
+                    "in_board": True,
+                    "landed": False,
+                    "time_scale": SHOT_TIME_SCALE,
+                    "landed_time": 0.0,
+                }
             )
         else:
             marker_pos = self._offboard_marker(origin, (dx, dy))
             self.shots.append(
                 {
-                "origin": origin,
-                "direction": (dx, dy),
-                "direction_angle": direction_angle,
-                "t": 0.0,
-                "flight_time": max(flight_time, 0.01),
-                "vx": vx,
-                "vy": vy,
-                "radius": radius,
-                "marker_pos": marker_pos,
-                "quantity": quantity,
-                "water_applied": False,
-                "in_board": False,
-                "landed": False,
-                "time_scale": 2.0,
-                "landed_time": 0.0,
-            }
+                    "origin": origin,
+                    "direction": (dx, dy),
+                    "direction_angle": direction_angle,
+                    "t": 0.0,
+                    "flight_time": max(flight_time, MIN_FLIGHT_TIME),
+                    "vx": vx,
+                    "vy": vy,
+                    "radius": radius,
+                    "marker_pos": marker_pos,
+                    "quantity": quantity,
+                    "water_applied": False,
+                    "in_board": False,
+                    "landed": False,
+                    "time_scale": SHOT_TIME_SCALE,
+                    "landed_time": 0.0,
+                }
             )
 
     def shutdown(self):
@@ -325,7 +376,7 @@ class Game:
     def run(self):
         try:
             while self.running:
-                dt = self.clock.tick(60) / 1000.0
+                dt = self.clock.tick(FPS) / MS_PER_SEC
                 for event in pygame.event.get():
                     self.handle_event(event)
                 self.update(dt)

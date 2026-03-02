@@ -1,12 +1,16 @@
 import pygame
 
+FONT_SIZE = 32
+TEXT_COLOR = (235, 235, 235)
+BORDER_COLOR = (120, 126, 140)
+
 
 class Scoreboard:
     def __init__(self, rect):
         self.rect = pygame.Rect(rect)
-        self.font = pygame.font.Font(None, 32)
-        self.text_color = (235, 235, 235)
-        self.border_color = (120, 126, 140)
+        self.font = pygame.font.Font(None, FONT_SIZE)
+        self.text_color = TEXT_COLOR
+        self.border_color = BORDER_COLOR
         self.spawned = 0
         self.harvested = 0
 
