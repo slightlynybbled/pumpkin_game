@@ -3,7 +3,7 @@
 import pygame
 from typing import Tuple
 
-FORCE_MIN = 0
+FORCE_MIN = 1
 FORCE_MAX = 10
 FORCE_START = 5
 FONT_SIZE = 24

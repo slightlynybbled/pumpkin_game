@@ -22,6 +22,12 @@ WATER_NEIGHBOR_RATIO = 0.2
 PUMPKIN_COLOR = (232, 144, 64)
 PUMPKIN_MAX_RADIUS_MARGIN = 6
 PUMPKIN_MIN_RADIUS = 3
+WEATHER_RAINY = "rainy"
+WEATHER_CLOUDY = "cloudy"
+WEATHER_SUNNY = "sunny"
+SUNNY_DRY_MULTIPLIER = 2.0
+NORMAL_DRY_MULTIPLIER = 1.0
+RAIN_RATE_PER_SEC = 0.15
 
 
 class Board:
@@ -57,6 +63,7 @@ class Board:
             [None for _ in range(cols)] for _ in range(rows)
         ]
         self.sprout_chance_per_sec = SPROUT_CHANCE_PER_SEC
+        self.weather = WEATHER_CLOUDY
         self.harvested_total = 0
         self.spawned_total = 0
         self.wet_color = WET_COLOR
@@ -86,9 +93,17 @@ class Board:
         """
         for row in range(self.rows):
             for col in range(self.cols):
-                self.water[row][col] = max(
-                    self.min_water, self.water[row][col] - self.dry_rate * dt
-                )
+                if self.weather == WEATHER_RAINY:
+                    self.water[row][col] = min(
+                        self.max_water, self.water[row][col] + RAIN_RATE_PER_SEC * dt
+                    )
+                else:
+                    multiplier = (
+                        SUNNY_DRY_MULTIPLIER if self.weather == WEATHER_SUNNY else NORMAL_DRY_MULTIPLIER
+                    )
+                    self.water[row][col] = max(
+                        self.min_water, self.water[row][col] - self.dry_rate * multiplier * dt
+                    )
                 if self.pumpkins[row][col] is None:
                     if random.random() < self.sprout_chance_per_sec * dt:
                         self.pumpkins[row][col] = Pumpkin()
@@ -120,6 +135,14 @@ class Board:
                 if dr == 0 and dc == 0:
                     continue
                 self._apply_water(row + dr, col + dc, neighbor_amount)
+
+    def set_weather(self, weather: str) -> None:
+        """Set the current weather state.
+
+        Args:
+            weather: Weather state string.
+        """
+        self.weather = weather
 
     def _apply_water(self, row: int, col: int, amount: int) -> None:
         """Apply water to a single tile.

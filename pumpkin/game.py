@@ -1,14 +1,20 @@
 """Main game loop, layout, and shot simulation."""
 
 import math
+import random
 from typing import Any
 
 import pygame
 
 from pumpkin.angle_adjustment import AngleAdjustmentTile
-from pumpkin.board import Board
+from pumpkin.board import Board, WEATHER_CLOUDY, WEATHER_RAINY, WEATHER_SUNNY
 from pumpkin.clock import ClockTile
 from pumpkin.force_adjustment import ForceAdjustmentTile
+from pumpkin.info_panel import (
+    INFO_BUTTON_MARGIN,
+    INFO_BUTTON_SIZE,
+    InfoButton,
+)
 from pumpkin.mammoth import Mammoth
 from pumpkin.quantity_adjustment import QuantityAdjustmentTile
 from pumpkin.scoreboard import Scoreboard
@@ -57,8 +63,20 @@ SHOT_PERSIST_SECONDS = 1.0
 FPS = 60
 MS_PER_SEC = 1000.0
 KEY_STEP = 1
-HOLD_DELAY_SECONDS = 1.0
-HOLD_REPEAT_INTERVAL = 0.08
+HOLD_DELAY_SECONDS = 0.4
+HOLD_REPEAT_INTERVAL = 0.04
+INFO_LINES = (
+    "Shortcuts",
+    "Space: squirt",
+    "Up/Down: force +/- 1",
+    "Ctrl + Up/Down: angle +/- 1",
+    "Left/Right: direction +/- 1",
+    "Hold Left/Right: faster adjust",
+)
+INFO_AUTOHIDE_SECONDS = 10.0
+WEATHER_CHANGE_MIN_SECONDS = 2.0
+WEATHER_CHANGE_MAX_SECONDS = 3.0
+WEATHER_STATES = (WEATHER_RAINY, WEATHER_CLOUDY, WEATHER_SUNNY)
 
 
 class Game:
@@ -119,6 +137,11 @@ class Game:
         )
         self.mammoth.set_pivot(board_bottom_center)
         self.shots: list[dict[str, Any]] = []
+        self.info_visible = False
+        self.info_visible_time = 0.0
+        info_left = self.screen_width - INFO_BUTTON_MARGIN - INFO_BUTTON_SIZE
+        info_top = self.screen_height - INFO_BUTTON_MARGIN - INFO_BUTTON_SIZE
+        self.info_button = InfoButton((info_left, info_top, INFO_BUTTON_SIZE, INFO_BUTTON_SIZE))
         self.left_pressed = False
         self.right_pressed = False
         self.left_hold_time = 0.0
@@ -152,18 +175,19 @@ class Game:
                 tile_height,
             )
         )
+        self.weather_tile = WeatherAdjustmentTile(
+            (
+                side_x,
+                board_origin[1] + SIDE_TILE_INDEX_WEATHER * (tile_height + self.side_tile_gap),
+                self.side_tile_width,
+                tile_height,
+            )
+        )
         self.side_tiles = [
             self.angle_tile,
             self.force_tile,
             self.quantity_tile,
-            WeatherAdjustmentTile(
-                (
-                    side_x,
-                    board_origin[1] + SIDE_TILE_INDEX_WEATHER * (tile_height + self.side_tile_gap),
-                    self.side_tile_width,
-                    tile_height,
-                )
-            ),
+            self.weather_tile,
             ClockTile(
                 (
                     side_x,
@@ -173,6 +197,13 @@ class Game:
                 )
             ),
         ]
+        self.weather_state = WEATHER_CLOUDY
+        self.weather_time = 0.0
+        self.weather_next_change = random.uniform(
+            WEATHER_CHANGE_MIN_SECONDS, WEATHER_CHANGE_MAX_SECONDS
+        )
+        self.board.set_weather(self.weather_state)
+        self.weather_tile.set_state(self.weather_state)
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle input events.
@@ -182,6 +213,15 @@ class Game:
         """
         if event.type == pygame.QUIT:
             self.running = False
+        if self.info_visible:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.info_visible = False
+                self.info_visible_time = 0.0
+                return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.info_visible = False
+                self.info_visible_time = 0.0
+                return
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 self.fire_shot()
@@ -199,6 +239,9 @@ class Game:
                 self.mammoth.adjust_angle(-KEY_STEP)
             elif event.key == pygame.K_RIGHT:
                 self.mammoth.adjust_angle(KEY_STEP)
+        if self.info_button.handle_event(event):
+            self.info_visible = not self.info_visible
+            self.info_visible_time = 0.0
         self.squirt_button.handle_event(event)
         self.angle_tile.handle_event(event)
         self.force_tile.handle_event(event)
@@ -215,7 +258,13 @@ class Game:
         self.scoreboard.set_counts(
             self.board.spawned_total, self.board.harvested_total
         )
+        self._update_weather(dt)
         self._update_direction_keys(dt)
+        if self.info_visible:
+            self.info_visible_time += dt
+            if self.info_visible_time >= INFO_AUTOHIDE_SECONDS:
+                self.info_visible = False
+                self.info_visible_time = 0.0
         if not self.shots:
             return
         remaining = []
@@ -282,6 +331,23 @@ class Game:
             self.right_hold_time = 0.0
             self.right_repeat_time = 0.0
 
+    def _update_weather(self, dt: float) -> None:
+        """Advance and randomize weather state over time.
+
+        Args:
+            dt: Delta time in seconds.
+        """
+        self.weather_time += dt
+        if self.weather_time < self.weather_next_change:
+            return
+        self.weather_time = 0.0
+        self.weather_next_change = random.uniform(
+            WEATHER_CHANGE_MIN_SECONDS, WEATHER_CHANGE_MAX_SECONDS
+        )
+        self.weather_state = random.choice(WEATHER_STATES)
+        self.board.set_weather(self.weather_state)
+        self.weather_tile.set_state(self.weather_state)
+
     def render(self) -> None:
         """Render the current frame."""
         self.screen.fill(BACKGROUND_COLOR)
@@ -292,6 +358,9 @@ class Game:
         self._draw_shots()
         for tile in self.side_tiles:
             tile.draw(self.screen)
+        self.info_button.draw(self.screen)
+        if self.info_visible:
+            self.info_button.draw_overlay(self.screen, INFO_LINES)
         pygame.display.flip()
 
     def _draw_shots(self) -> None:
