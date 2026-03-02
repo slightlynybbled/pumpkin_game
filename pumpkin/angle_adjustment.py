@@ -20,11 +20,11 @@ class AngleAdjustmentTile:
     def _button_rects(self):
         minus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         plus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
-        plus_rect.topleft = (
+        minus_rect.topleft = (
             self.rect.left + self.button_padding,
             self.rect.bottom - self.button_padding - self.button_size,
         )
-        minus_rect.topright = (
+        plus_rect.topright = (
             self.rect.right - self.button_padding,
             self.rect.bottom - self.button_padding - self.button_size,
         )

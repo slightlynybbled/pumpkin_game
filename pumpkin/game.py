@@ -53,30 +53,37 @@ class Game:
         self.squirt_button = SquirtButton(
             (panel_x + panel_width * 2, panel_y, panel_width, self.panel_height)
         )
+        board_bottom_center = (
+            board_origin[0] + self.board_size // 2,
+            board_origin[1] + self.board_size,
+        )
+        self.mammoth.set_pivot(board_bottom_center)
         side_x = board_origin[0] + self.board_size + self.padding_between
         side_height = self.board_size
         tile_height = (side_height - self.side_tile_gap * 4) // 5
         self.angle_tile = AngleAdjustmentTile(
             (side_x, board_origin[1], self.side_tile_width, tile_height)
         )
+        self.force_tile = ForceAdjustmentTile(
+            (
+                side_x,
+                board_origin[1] + (tile_height + self.side_tile_gap),
+                self.side_tile_width,
+                tile_height,
+            )
+        )
+        self.quantity_tile = QuantityAdjustmentTile(
+            (
+                side_x,
+                board_origin[1] + 2 * (tile_height + self.side_tile_gap),
+                self.side_tile_width,
+                tile_height,
+            )
+        )
         self.side_tiles = [
             self.angle_tile,
-            ForceAdjustmentTile(
-                (
-                    side_x,
-                    board_origin[1] + (tile_height + self.side_tile_gap),
-                    self.side_tile_width,
-                    tile_height,
-                )
-            ),
-            QuantityAdjustmentTile(
-                (
-                    side_x,
-                    board_origin[1] + 2 * (tile_height + self.side_tile_gap),
-                    self.side_tile_width,
-                    tile_height,
-                )
-            ),
+            self.force_tile,
+            self.quantity_tile,
             WeatherAdjustmentTile(
                 (
                     side_x,
@@ -100,6 +107,9 @@ class Game:
             self.running = False
         self.squirt_button.handle_event(event)
         self.angle_tile.handle_event(event)
+        self.force_tile.handle_event(event)
+        self.quantity_tile.handle_event(event)
+        self.mammoth.handle_event(event)
 
     def update(self):
         pass
