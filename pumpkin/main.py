@@ -1,7 +1,10 @@
+"""Entry point for the game."""
+
 from pumpkin.game import Game
 
 
-def main():
+def main() -> None:
+    """Run the game."""
     game = Game()
     game.run()
 

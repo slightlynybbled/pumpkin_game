@@ -1,4 +1,7 @@
+"""Force adjustment tile UI and input handling."""
+
 import pygame
+from typing import Tuple
 
 FORCE_MIN = 0
 FORCE_MAX = 10
@@ -23,7 +26,14 @@ MOUSE_LEFT_BUTTON = 1
 
 
 class ForceAdjustmentTile:
-    def __init__(self, rect):
+    """Render and update the force adjustment tile."""
+
+    def __init__(self, rect: pygame.Rect | tuple[int, int, int, int]):
+        """Initialize the tile.
+
+        Args:
+            rect: Tile rectangle (pygame.Rect or rect-like tuple).
+        """
         self.rect = pygame.Rect(rect)
         self.border_color = BORDER_COLOR
         self.track_color = TRACK_COLOR
@@ -35,7 +45,8 @@ class ForceAdjustmentTile:
         self.button_size = max(BUTTON_MIN_SIZE, self.rect.width // BUTTON_WIDTH_RATIO)
         self.button_padding = BUTTON_PADDING
 
-    def _button_rects(self):
+    def _button_rects(self) -> Tuple[pygame.Rect, pygame.Rect]:
+        """Return rectangles for the minus and plus buttons."""
         minus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         plus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         minus_rect.topleft = (
@@ -48,10 +59,20 @@ class ForceAdjustmentTile:
         )
         return minus_rect, plus_rect
 
-    def _apply_force_delta(self, delta):
+    def _apply_force_delta(self, delta: int) -> None:
+        """Adjust the force within bounds.
+
+        Args:
+            delta: Signed change in force.
+        """
         self.force = max(self.min_force, min(self.max_force, self.force + delta))
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Handle mouse click events.
+
+        Args:
+            event: Pygame event to process.
+        """
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != MOUSE_LEFT_BUTTON:
             return
         minus_rect, plus_rect = self._button_rects()
@@ -60,7 +81,12 @@ class ForceAdjustmentTile:
         elif minus_rect.collidepoint(event.pos):
             self._apply_force_delta(-1)
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the tile UI.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
         track_y = self.rect.centery
         left = self.rect.left + TRACK_PADDING

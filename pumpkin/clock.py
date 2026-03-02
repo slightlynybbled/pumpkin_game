@@ -1,3 +1,5 @@
+"""Clock tile placeholder rendering."""
+
 import pygame
 
 FONT_SIZE = 24
@@ -12,13 +14,25 @@ HAND_RIGHT_MARGIN = 6
 
 
 class ClockTile:
-    def __init__(self, rect):
+    """Render a placeholder clock tile."""
+
+    def __init__(self, rect: pygame.Rect | tuple[int, int, int, int]):
+        """Initialize the tile.
+
+        Args:
+            rect: Tile rectangle (pygame.Rect or rect-like tuple).
+        """
         self.rect = pygame.Rect(rect)
         self.border_color = BORDER_COLOR
         self.face_color = FACE_COLOR
         self.font = pygame.font.Font(None, FONT_SIZE)
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the clock tile.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
         center = self.rect.center
         radius = min(self.rect.width, self.rect.height) // FACE_RADIUS_SCALE

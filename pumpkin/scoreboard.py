@@ -1,3 +1,5 @@
+"""Scoreboard tile rendering."""
+
 import pygame
 
 FONT_SIZE = 32
@@ -6,7 +8,14 @@ BORDER_COLOR = (120, 126, 140)
 
 
 class Scoreboard:
-    def __init__(self, rect):
+    """Display spawned and harvested counts."""
+
+    def __init__(self, rect: pygame.Rect | tuple[int, int, int, int]):
+        """Initialize the scoreboard tile.
+
+        Args:
+            rect: Tile rectangle (pygame.Rect or rect-like tuple).
+        """
         self.rect = pygame.Rect(rect)
         self.font = pygame.font.Font(None, FONT_SIZE)
         self.text_color = TEXT_COLOR
@@ -14,11 +23,22 @@ class Scoreboard:
         self.spawned = 0
         self.harvested = 0
 
-    def set_counts(self, spawned, harvested):
+    def set_counts(self, spawned: int, harvested: int) -> None:
+        """Update the displayed counts.
+
+        Args:
+            spawned: Total spawned pumpkins.
+            harvested: Total harvested pumpkins.
+        """
         self.spawned = spawned
         self.harvested = harvested
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the scoreboard tile.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
         line_height = self.font.get_linesize()
         top_y = self.rect.centery - line_height // 2

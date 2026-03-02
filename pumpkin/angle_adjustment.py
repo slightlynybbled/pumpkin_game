@@ -1,4 +1,7 @@
+"""Angle adjustment tile UI and input handling."""
+
 import math
+from typing import Tuple
 
 import pygame
 
@@ -21,7 +24,14 @@ MOUSE_LEFT_BUTTON = 1
 
 
 class AngleAdjustmentTile:
+    """Render and update the angle adjustment tile."""
+
     def __init__(self, rect):
+        """Initialize the tile.
+
+        Args:
+            rect: Tile rectangle (pygame.Rect or rect-like tuple).
+        """
         self.rect = pygame.Rect(rect)
         self.border_color = BORDER_COLOR
         self.line_color = LINE_COLOR
@@ -34,7 +44,8 @@ class AngleAdjustmentTile:
         self.button_size = max(BUTTON_MIN_SIZE, self.rect.width // BUTTON_WIDTH_RATIO)
         self.button_padding = BUTTON_PADDING
 
-    def _button_rects(self):
+    def _button_rects(self) -> Tuple[pygame.Rect, pygame.Rect]:
+        """Return rectangles for the minus and plus buttons."""
         minus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         plus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         minus_rect.topleft = (
@@ -47,10 +58,20 @@ class AngleAdjustmentTile:
         )
         return minus_rect, plus_rect
 
-    def _apply_angle_delta(self, delta):
+    def _apply_angle_delta(self, delta: int) -> None:
+        """Adjust the angle within bounds.
+
+        Args:
+            delta: Signed change in degrees.
+        """
         self.angle = max(self.min_angle, min(self.max_angle, self.angle + delta))
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Handle mouse click events.
+
+        Args:
+            event: Pygame event to process.
+        """
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != MOUSE_LEFT_BUTTON:
             return
 
@@ -68,7 +89,12 @@ class AngleAdjustmentTile:
             self._apply_angle_delta(-step)
             self.last_click_time["minus"] = now
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the tile UI.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
         mid_x = self.rect.left + self.button_padding
         mid_y = self.rect.top + self.rect.height // 2 - self.button_size // 2

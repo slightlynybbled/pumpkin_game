@@ -1,4 +1,7 @@
+"""Quantity adjustment tile UI and input handling."""
+
 import pygame
+from typing import Tuple
 
 QUANTITY_MIN = 1
 QUANTITY_MAX = 10
@@ -21,7 +24,14 @@ MOUSE_LEFT_BUTTON = 1
 
 
 class QuantityAdjustmentTile:
-    def __init__(self, rect):
+    """Render and update the quantity adjustment tile."""
+
+    def __init__(self, rect: pygame.Rect | tuple[int, int, int, int]):
+        """Initialize the tile.
+
+        Args:
+            rect: Tile rectangle (pygame.Rect or rect-like tuple).
+        """
         self.rect = pygame.Rect(rect)
         self.border_color = BORDER_COLOR
         self.line_color = LINE_COLOR
@@ -33,7 +43,8 @@ class QuantityAdjustmentTile:
         self.button_size = max(BUTTON_MIN_SIZE, self.rect.width // BUTTON_WIDTH_RATIO)
         self.button_padding = BUTTON_PADDING
 
-    def _button_rects(self):
+    def _button_rects(self) -> Tuple[pygame.Rect, pygame.Rect]:
+        """Return rectangles for the minus and plus buttons."""
         minus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         plus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         minus_rect.topleft = (
@@ -46,12 +57,22 @@ class QuantityAdjustmentTile:
         )
         return minus_rect, plus_rect
 
-    def _apply_quantity_delta(self, delta):
+    def _apply_quantity_delta(self, delta: int) -> None:
+        """Adjust the quantity within bounds.
+
+        Args:
+            delta: Signed change in quantity.
+        """
         self.quantity = max(
             self.min_quantity, min(self.max_quantity, self.quantity + delta)
         )
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Handle mouse click events.
+
+        Args:
+            event: Pygame event to process.
+        """
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != MOUSE_LEFT_BUTTON:
             return
         minus_rect, plus_rect = self._button_rects()
@@ -60,7 +81,12 @@ class QuantityAdjustmentTile:
         elif minus_rect.collidepoint(event.pos):
             self._apply_quantity_delta(-1)
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the tile UI.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
         minus_rect, plus_rect = self._button_rects()
         pygame.draw.rect(

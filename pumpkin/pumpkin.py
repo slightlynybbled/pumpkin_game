@@ -10,8 +10,14 @@ GROW_RATE_PERFECT = 1.0
 STAGNANT_LIMIT = 10.0
 
 
+"""Pumpkin growth logic."""
+
+
 class Pumpkin:
+    """Track pumpkin health and growth state."""
+
     def __init__(self):
+        """Initialize a new pumpkin."""
         self.health = HEALTH_START
         self.max_health = HEALTH_MAX
         self.min_water = WATER_MIN
@@ -24,7 +30,13 @@ class Pumpkin:
         self.stagnant_time = 0.0
         self.stagnant_limit = STAGNANT_LIMIT
 
-    def update(self, dt, water_level):
+    def update(self, dt: float, water_level: float) -> bool:
+        """Advance pumpkin growth state.
+
+        Args:
+            dt: Delta time in seconds.
+            water_level: Current water level from the hosting tile.
+        """
         if self.harvested:
             return False
         if self.dead:

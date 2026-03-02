@@ -1,4 +1,7 @@
+"""Mammoth tile rendering and rotation control."""
+
 import pygame
+from typing import Tuple
 
 MAMMOTH_COLOR = (139, 94, 60)
 ANGLE_MIN = -90
@@ -19,7 +22,14 @@ MOUSE_LEFT_BUTTON = 1
 
 
 class Mammoth:
-    def __init__(self, rect):
+    """Render a mammoth placeholder and handle rotation input."""
+
+    def __init__(self, rect: pygame.Rect | tuple[int, int, int, int]):
+        """Initialize the mammoth tile.
+
+        Args:
+            rect: Tile rectangle (pygame.Rect or rect-like tuple).
+        """
         self.rect = pygame.Rect(rect)
         self.color = MAMMOTH_COLOR
         self.angle = 0
@@ -31,10 +41,16 @@ class Mammoth:
         self.last_click_time = {"plus": 0, "minus": 0}
         self.pivot = None
 
-    def set_pivot(self, pivot):
+    def set_pivot(self, pivot: tuple[int, int]) -> None:
+        """Set the rotation pivot point.
+
+        Args:
+            pivot: (x, y) position used as rotation center.
+        """
         self.pivot = pivot
 
-    def _button_rects(self):
+    def _button_rects(self) -> Tuple[pygame.Rect, pygame.Rect]:
+        """Return rectangles for the minus and plus buttons."""
         minus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         plus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
         minus_rect.topleft = (
@@ -47,10 +63,20 @@ class Mammoth:
         )
         return minus_rect, plus_rect
 
-    def _apply_angle_delta(self, delta):
+    def _apply_angle_delta(self, delta: int) -> None:
+        """Adjust the mammoth angle within bounds.
+
+        Args:
+            delta: Signed change in degrees.
+        """
         self.angle = max(self.min_angle, min(self.max_angle, self.angle + delta))
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Handle mouse click events.
+
+        Args:
+            event: Pygame event to process.
+        """
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != MOUSE_LEFT_BUTTON:
             return
         minus_rect, plus_rect = self._button_rects()
@@ -64,7 +90,12 @@ class Mammoth:
             self._apply_angle_delta(-step)
             self.last_click_time["minus"] = now
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the mammoth and controls.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
         body_width = int(self.rect.width * BODY_WIDTH_RATIO)
         body_height = int(self.rect.height * BODY_HEIGHT_RATIO)
         head_radius = int(body_width * HEAD_RADIUS_RATIO)

@@ -1,4 +1,7 @@
+"""Main game loop, layout, and shot simulation."""
+
 import math
+from typing import Any
 
 import pygame
 
@@ -56,7 +59,10 @@ MS_PER_SEC = 1000.0
 
 
 class Game:
+    """Manage the game loop, layout, and interactions."""
+
     def __init__(self):
+        """Initialize the game state, UI, and board."""
         pygame.init()
         self.gravity = GRAVITY
         self.tile_size = TILE_SIZE
@@ -109,7 +115,7 @@ class Game:
             board_origin[1] + self.board_size,
         )
         self.mammoth.set_pivot(board_bottom_center)
-        self.shots = []
+        self.shots: list[dict[str, Any]] = []
         side_x = board_origin[0] + self.board_size + self.padding_between
         side_height = self.board_size
         tile_height = (side_height - self.side_tile_gap * (SIDE_TILE_COUNT - 1)) // SIDE_TILE_COUNT
@@ -159,7 +165,12 @@ class Game:
             ),
         ]
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Handle input events.
+
+        Args:
+            event: Pygame event to process.
+        """
         if event.type == pygame.QUIT:
             self.running = False
         self.squirt_button.handle_event(event)
@@ -168,7 +179,12 @@ class Game:
         self.quantity_tile.handle_event(event)
         self.mammoth.handle_event(event)
 
-    def update(self, dt):
+    def update(self, dt: float) -> None:
+        """Advance game simulation.
+
+        Args:
+            dt: Delta time in seconds.
+        """
         self.board.update(dt)
         self.scoreboard.set_counts(
             self.board.spawned_total, self.board.harvested_total
@@ -195,7 +211,8 @@ class Game:
                 remaining.append(shot)
         self.shots = remaining
 
-    def render(self):
+    def render(self) -> None:
+        """Render the current frame."""
         self.screen.fill(BACKGROUND_COLOR)
         self.board.draw(self.screen)
         self.scoreboard.draw(self.screen)
@@ -206,7 +223,8 @@ class Game:
             tile.draw(self.screen)
         pygame.display.flip()
 
-    def _draw_shots(self):
+    def _draw_shots(self) -> None:
+        """Render all active shots and their paths."""
         if not self.shots:
             return
         color = ARC_COLOR
@@ -239,7 +257,15 @@ class Game:
                     shot["radius"],
                 )
 
-    def _draw_offboard_arrow(self, pos, direction):
+    def _draw_offboard_arrow(
+        self, pos: tuple[float, float], direction: tuple[float, float]
+    ) -> None:
+        """Draw an off-board directional arrow marker.
+
+        Args:
+            pos: Arrow center position as (x, y).
+            direction: Direction vector as (dx, dy).
+        """
         dx, dy = direction
         length = math.hypot(dx, dy)
         if length == 0:
@@ -252,7 +278,13 @@ class Game:
         right = (base[0] - perp[0] * ARROW_SIDE_OFFSET, base[1] - perp[1] * ARROW_SIDE_OFFSET)
         pygame.draw.polygon(self.screen, ARC_COLOR, [tip, left, right])
 
-    def _shot_position(self, shot, t):
+    def _shot_position(self, shot: dict[str, Any], t: float) -> tuple[float, float]:
+        """Compute shot position at time t.
+
+        Args:
+            shot: Shot state dictionary.
+            t: Time in seconds since launch.
+        """
         vx = shot["vx"]
         vy = shot["vy"]
         x = vx * t
@@ -268,7 +300,15 @@ class Game:
             origin[1] + dir_y * x + perp_y * (-y * arc_scale),
         )
 
-    def _offboard_marker(self, origin, direction):
+    def _offboard_marker(
+        self, origin: tuple[float, float], direction: tuple[float, float]
+    ) -> tuple[float, float]:
+        """Compute a marker position just outside the board.
+
+        Args:
+            origin: Launch origin as (x, y).
+            direction: Direction vector as (dx, dy).
+        """
         ox, oy = origin
         dx, dy = direction
         candidates = []
@@ -293,7 +333,8 @@ class Game:
         t, x, y, normal = min(candidates, key=lambda item: item[0])
         return (x + normal[0] * ARROW_OUTSET, y + normal[1] * ARROW_OUTSET)
 
-    def fire_shot(self):
+    def fire_shot(self) -> None:
+        """Launch a new shot using current tile settings."""
         force = self.force_tile.force
         vertical_angle = self.angle_tile.angle
         direction_angle = self.mammoth.angle
@@ -370,10 +411,12 @@ class Game:
                 }
             )
 
-    def shutdown(self):
+    def shutdown(self) -> None:
+        """Shutdown pygame cleanly."""
         pygame.quit()
 
-    def run(self):
+    def run(self) -> None:
+        """Run the main game loop."""
         try:
             while self.running:
                 dt = self.clock.tick(FPS) / MS_PER_SEC

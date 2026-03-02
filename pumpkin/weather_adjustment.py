@@ -1,3 +1,5 @@
+"""Weather adjustment tile placeholder rendering."""
+
 import pygame
 
 WEATHER_MIN = -10
@@ -16,14 +18,26 @@ TITLE_Y_OFFSET = 14
 
 
 class WeatherAdjustmentTile:
-    def __init__(self, rect):
+    """Render a placeholder weather adjustment tile."""
+
+    def __init__(self, rect: pygame.Rect | tuple[int, int, int, int]):
+        """Initialize the tile.
+
+        Args:
+            rect: Tile rectangle (pygame.Rect or rect-like tuple).
+        """
         self.rect = pygame.Rect(rect)
         self.border_color = BORDER_COLOR
         self.track_color = TRACK_COLOR
         self.knob_color = KNOB_COLOR
         self.font = pygame.font.Font(None, FONT_SIZE)
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the tile UI.
+
+        Args:
+            surface: Pygame surface to draw on.
+        """
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
         track_y = self.rect.centery
         left = self.rect.left + TRACK_PADDING
