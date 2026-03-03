@@ -2,7 +2,8 @@
 
 import math
 import random
-from typing import Any
+from dataclasses import dataclass
+from typing import Optional
 
 import pygame
 
@@ -81,12 +82,46 @@ WEATHER_STATES = (WEATHER_RAINY, WEATHER_CLOUDY, WEATHER_SUNNY)
 GAME_DURATION_SECONDS = 30.0
 
 
+@dataclass
+class Shot:
+    """Track shot state through its flight and landing."""
+
+    origin: tuple[float, float]
+    direction: tuple[float, float]
+    direction_angle: float
+    t: float
+    flight_time: float
+    vx: float
+    vy: float
+    radius: int
+    quantity: int
+    water_applied: bool
+    in_board: bool
+    landed: bool
+    time_scale: float
+    landed_time: float
+    landing: Optional[tuple[int, int]] = None
+    tile: Optional[tuple[int, int]] = None
+    marker_pos: Optional[tuple[float, float]] = None
+
+
 class Game:
     """Manage the game loop, layout, and interactions."""
 
     def __init__(self):
         """Initialize the game state, UI, and board."""
         pygame.init()
+        self._init_layout()
+        self._init_board()
+        self._init_panel()
+        self._init_side_tiles()
+        self._init_info_ui()
+        self._init_input_state()
+        self._init_weather()
+        self._init_game_state()
+
+    def _init_layout(self) -> None:
+        """Set layout metrics and initialize the display."""
         self.gravity = GRAVITY
         self.tile_size = TILE_SIZE
         self.board_size = self.tile_size * BOARD_TILES
@@ -116,12 +151,17 @@ class Game:
         pygame.display.set_caption("Pumpkin")
         self.clock = pygame.time.Clock()
         self.running = True
+        self.board_origin = (self.padding_left, self.padding_top)
 
-        board_origin = (self.padding_left, self.padding_top)
-        self.board = Board(tile_size=self.tile_size, origin=board_origin)
-        self.board_rect = pygame.Rect(board_origin, (self.board_size, self.board_size))
-        panel_y = board_origin[1] + self.board_size + self.padding_between
-        panel_x = board_origin[0]
+    def _init_board(self) -> None:
+        """Initialize the board state and board rectangle."""
+        self.board = Board(tile_size=self.tile_size, origin=self.board_origin)
+        self.board_rect = pygame.Rect(self.board_origin, (self.board_size, self.board_size))
+
+    def _init_panel(self) -> None:
+        """Initialize the lower panel tiles."""
+        panel_y = self.board_origin[1] + self.board_size + self.padding_between
+        panel_x = self.board_origin[0]
         panel_width = self.board_size // PANEL_COLUMNS
         self.scoreboard = Scoreboard(
             (panel_x + panel_width * PANEL_INDEX_SCOREBOARD, panel_y, panel_width, self.panel_height)
@@ -134,29 +174,20 @@ class Game:
             on_click=self.fire_shot,
         )
         board_bottom_center = (
-            board_origin[0] + self.board_size // 2,
-            board_origin[1] + self.board_size,
+            self.board_origin[0] + self.board_size // 2,
+            self.board_origin[1] + self.board_size,
         )
         self.mammoth.set_pivot(board_bottom_center)
-        self.shots: list[dict[str, Any]] = []
-        self.info_visible = False
-        self.info_visible_time = 0.0
-        info_left = self.screen_width - INFO_BUTTON_MARGIN - INFO_BUTTON_SIZE
-        info_top = self.screen_height - INFO_BUTTON_MARGIN - INFO_BUTTON_SIZE
-        self.info_button = InfoButton((info_left, info_top, INFO_BUTTON_SIZE, INFO_BUTTON_SIZE))
-        self.left_pressed = False
-        self.right_pressed = False
-        self.left_hold_time = 0.0
-        self.right_hold_time = 0.0
-        self.left_repeat_time = 0.0
-        self.right_repeat_time = 0.0
-        side_x = board_origin[0] + self.board_size + self.padding_between
+
+    def _init_side_tiles(self) -> None:
+        """Initialize the side adjustment tiles."""
+        side_x = self.board_origin[0] + self.board_size + self.padding_between
         side_height = self.board_size
         tile_height = (side_height - self.side_tile_gap * (SIDE_TILE_COUNT - 1)) // SIDE_TILE_COUNT
         self.angle_tile = AngleAdjustmentTile(
             (
                 side_x,
-                board_origin[1] + SIDE_TILE_INDEX_ANGLE * (tile_height + self.side_tile_gap),
+                self.board_origin[1] + SIDE_TILE_INDEX_ANGLE * (tile_height + self.side_tile_gap),
                 self.side_tile_width,
                 tile_height,
             )
@@ -164,7 +195,7 @@ class Game:
         self.force_tile = ForceAdjustmentTile(
             (
                 side_x,
-                board_origin[1] + SIDE_TILE_INDEX_FORCE * (tile_height + self.side_tile_gap),
+                self.board_origin[1] + SIDE_TILE_INDEX_FORCE * (tile_height + self.side_tile_gap),
                 self.side_tile_width,
                 tile_height,
             )
@@ -172,7 +203,7 @@ class Game:
         self.quantity_tile = QuantityAdjustmentTile(
             (
                 side_x,
-                board_origin[1] + SIDE_TILE_INDEX_QUANTITY * (tile_height + self.side_tile_gap),
+                self.board_origin[1] + SIDE_TILE_INDEX_QUANTITY * (tile_height + self.side_tile_gap),
                 self.side_tile_width,
                 tile_height,
             )
@@ -180,7 +211,7 @@ class Game:
         self.weather_tile = WeatherAdjustmentTile(
             (
                 side_x,
-                board_origin[1] + SIDE_TILE_INDEX_WEATHER * (tile_height + self.side_tile_gap),
+                self.board_origin[1] + SIDE_TILE_INDEX_WEATHER * (tile_height + self.side_tile_gap),
                 self.side_tile_width,
                 tile_height,
             )
@@ -188,7 +219,7 @@ class Game:
         self.clock_tile = ClockTile(
             (
                 side_x,
-                board_origin[1] + SIDE_TILE_INDEX_CLOCK * (tile_height + self.side_tile_gap),
+                self.board_origin[1] + SIDE_TILE_INDEX_CLOCK * (tile_height + self.side_tile_gap),
                 self.side_tile_width,
                 tile_height,
             )
@@ -200,6 +231,26 @@ class Game:
             self.weather_tile,
             self.clock_tile,
         ]
+
+    def _init_info_ui(self) -> None:
+        """Initialize the info overlay button and timers."""
+        self.info_visible = False
+        self.info_visible_time = 0.0
+        info_left = self.screen_width - INFO_BUTTON_MARGIN - INFO_BUTTON_SIZE
+        info_top = self.screen_height - INFO_BUTTON_MARGIN - INFO_BUTTON_SIZE
+        self.info_button = InfoButton((info_left, info_top, INFO_BUTTON_SIZE, INFO_BUTTON_SIZE))
+
+    def _init_input_state(self) -> None:
+        """Initialize input repeat state for direction keys."""
+        self.left_pressed = False
+        self.right_pressed = False
+        self.left_hold_time = 0.0
+        self.right_hold_time = 0.0
+        self.left_repeat_time = 0.0
+        self.right_repeat_time = 0.0
+
+    def _init_weather(self) -> None:
+        """Initialize weather state and update the UI tile."""
         self.weather_state = WEATHER_CLOUDY
         self.weather_time = 0.0
         self.weather_next_change = random.uniform(
@@ -207,9 +258,13 @@ class Game:
         )
         self.board.set_weather(self.weather_state)
         self.weather_tile.set_state(self.weather_state)
+
+    def _init_game_state(self) -> None:
+        """Initialize game runtime state."""
         self.game_running = False
         self.game_over = False
         self.remaining_seconds = GAME_DURATION_SECONDS
+        self.shots: list[Shot] = []
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle input events.
@@ -292,27 +347,7 @@ class Game:
         )
         self._update_weather(dt)
         self._update_direction_keys(dt)
-        if not self.shots:
-            return
-        remaining = []
-        for shot in self.shots:
-            if shot["landed"]:
-                shot["landed_time"] += dt
-                if shot["landed_time"] < SHOT_PERSIST_SECONDS:
-                    remaining.append(shot)
-                continue
-            shot["t"] += dt * shot["time_scale"]
-            if shot["t"] >= shot["flight_time"]:
-                shot["t"] = shot["flight_time"]
-                shot["landed"] = True
-                if shot["in_board"] and not shot["water_applied"]:
-                    row, col = shot["tile"]
-                    self.board.add_water(row, col, shot["quantity"])
-                    shot["water_applied"] = True
-                remaining.append(shot)
-            else:
-                remaining.append(shot)
-        self.shots = remaining
+        self._update_shots(dt)
 
     def _start_game(self) -> None:
         """Start the game timer."""
@@ -431,32 +466,30 @@ class Game:
             return
         color = ARC_COLOR
         for shot in self.shots:
-            if shot["landed"]:
-                if shot["in_board"]:
-                    pos = shot["landing"]
-                    pygame.draw.circle(self.screen, color, pos, shot["radius"])
-                else:
-                    marker_pos = shot["marker_pos"]
-                    self._draw_offboard_arrow(marker_pos, shot["direction"])
+            if shot.landed:
+                if shot.in_board and shot.landing:
+                    pygame.draw.circle(self.screen, color, shot.landing, shot.radius)
+                elif shot.marker_pos:
+                    self._draw_offboard_arrow(shot.marker_pos, shot.direction)
                 continue
 
             path_points = []
             steps = ARC_STEPS
             for i in range(steps + 1):
-                t = shot["flight_time"] * (i / steps)
+                t = shot.flight_time * (i / steps)
                 pos = self._shot_position(shot, t)
                 if pos:
                     path_points.append((int(pos[0]), int(pos[1])))
             if len(path_points) >= 2:
                 pygame.draw.lines(self.screen, color, False, path_points, ARC_LINE_WIDTH)
 
-            current_pos = self._shot_position(shot, shot["t"])
+            current_pos = self._shot_position(shot, shot.t)
             if current_pos:
                 pygame.draw.circle(
                     self.screen,
                     color,
                     (int(current_pos[0]), int(current_pos[1])),
-                    shot["radius"],
+                    shot.radius,
                 )
 
     def _draw_offboard_arrow(
@@ -480,23 +513,23 @@ class Game:
         right = (base[0] - perp[0] * ARROW_SIDE_OFFSET, base[1] - perp[1] * ARROW_SIDE_OFFSET)
         pygame.draw.polygon(self.screen, ARC_COLOR, [tip, left, right])
 
-    def _shot_position(self, shot: dict[str, Any], t: float) -> tuple[float, float]:
+    def _shot_position(self, shot: Shot, t: float) -> tuple[float, float]:
         """Compute shot position at time t.
 
         Args:
-            shot: Shot state dictionary.
+            shot: Shot state object.
             t: Time in seconds since launch.
         """
-        vx = shot["vx"]
-        vy = shot["vy"]
+        vx = shot.vx
+        vy = shot.vy
         x = vx * t
         y = vy * t - GRAVITY_HALF * self.gravity * t * t
         if y < 0:
             y = 0
-        origin = shot["origin"]
-        dir_x, dir_y = shot["direction"]
+        origin = shot.origin
+        dir_x, dir_y = shot.direction
         perp_x, perp_y = -dir_y, dir_x
-        arc_scale = ARC_SCALE_NEG if shot["direction_angle"] < 0 else ARC_SCALE_POS
+        arc_scale = ARC_SCALE_NEG if shot.direction_angle < 0 else ARC_SCALE_POS
         return (
             origin[0] + dir_x * x + perp_x * (-y * arc_scale),
             origin[1] + dir_y * x + perp_y * (-y * arc_scale),
@@ -574,45 +607,45 @@ class Game:
                 self.board_rect.top + row * self.tile_size + self.tile_size // 2,
             )
             self.shots.append(
-                {
-                    "origin": origin,
-                    "direction": (dx, dy),
-                    "direction_angle": direction_angle,
-                    "t": 0.0,
-                    "flight_time": max(flight_time, MIN_FLIGHT_TIME),
-                    "vx": vx,
-                    "vy": vy,
-                    "radius": radius,
-                    "landing": (int(tile_center[0]), int(tile_center[1])),
-                    "tile": (row, col),
-                    "quantity": quantity,
-                    "water_applied": False,
-                    "in_board": True,
-                    "landed": False,
-                    "time_scale": SHOT_TIME_SCALE,
-                    "landed_time": 0.0,
-                }
+                Shot(
+                    origin=origin,
+                    direction=(dx, dy),
+                    direction_angle=direction_angle,
+                    t=0.0,
+                    flight_time=max(flight_time, MIN_FLIGHT_TIME),
+                    vx=vx,
+                    vy=vy,
+                    radius=radius,
+                    landing=(int(tile_center[0]), int(tile_center[1])),
+                    tile=(row, col),
+                    quantity=quantity,
+                    water_applied=False,
+                    in_board=True,
+                    landed=False,
+                    time_scale=SHOT_TIME_SCALE,
+                    landed_time=0.0,
+                )
             )
         else:
             marker_pos = self._offboard_marker(origin, (dx, dy))
             self.shots.append(
-                {
-                    "origin": origin,
-                    "direction": (dx, dy),
-                    "direction_angle": direction_angle,
-                    "t": 0.0,
-                    "flight_time": max(flight_time, MIN_FLIGHT_TIME),
-                    "vx": vx,
-                    "vy": vy,
-                    "radius": radius,
-                    "marker_pos": marker_pos,
-                    "quantity": quantity,
-                    "water_applied": False,
-                    "in_board": False,
-                    "landed": False,
-                    "time_scale": SHOT_TIME_SCALE,
-                    "landed_time": 0.0,
-                }
+                Shot(
+                    origin=origin,
+                    direction=(dx, dy),
+                    direction_angle=direction_angle,
+                    t=0.0,
+                    flight_time=max(flight_time, MIN_FLIGHT_TIME),
+                    vx=vx,
+                    vy=vy,
+                    radius=radius,
+                    marker_pos=marker_pos,
+                    quantity=quantity,
+                    water_applied=False,
+                    in_board=False,
+                    landed=False,
+                    time_scale=SHOT_TIME_SCALE,
+                    landed_time=0.0,
+                )
             )
 
     def shutdown(self) -> None:
@@ -630,3 +663,26 @@ class Game:
                 self.render()
         finally:
             self.shutdown()
+    def _update_shots(self, dt: float) -> None:
+        """Advance shot timing and apply water on landing."""
+        if not self.shots:
+            return
+        remaining = []
+        for shot in self.shots:
+            if shot.landed:
+                shot.landed_time += dt
+                if shot.landed_time < SHOT_PERSIST_SECONDS:
+                    remaining.append(shot)
+                continue
+            shot.t += dt * shot.time_scale
+            if shot.t >= shot.flight_time:
+                shot.t = shot.flight_time
+                shot.landed = True
+                if shot.in_board and not shot.water_applied and shot.tile:
+                    row, col = shot.tile
+                    self.board.add_water(row, col, shot.quantity)
+                    shot.water_applied = True
+                remaining.append(shot)
+            else:
+                remaining.append(shot)
+        self.shots = remaining

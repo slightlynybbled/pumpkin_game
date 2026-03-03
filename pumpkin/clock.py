@@ -4,13 +4,7 @@ import pygame
 
 FONT_SIZE = 24
 BORDER_COLOR = (120, 126, 140)
-FACE_COLOR = (230, 0, 230)
-FACE_RADIUS_SCALE = 3
-FACE_BORDER_WIDTH = 2
-HAND_WIDTH = 2
 TITLE_Y_OFFSET = 14
-HAND_TOP_MARGIN = 4
-HAND_RIGHT_MARGIN = 6
 START_BUTTON_HEIGHT = 22
 START_BUTTON_WIDTH_RATIO = 0.8
 START_BUTTON_RADIUS = 4
@@ -33,7 +27,6 @@ class ClockTile:
         """
         self.rect = pygame.Rect(rect)
         self.border_color = BORDER_COLOR
-        self.face_color = FACE_COLOR
         self.font = pygame.font.Font(None, FONT_SIZE)
         self.running = False
         self.remaining_seconds = 0.0

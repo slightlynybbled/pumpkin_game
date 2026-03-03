@@ -3,22 +3,13 @@
 import math
 import pygame
 
-WEATHER_MIN = -10
-WEATHER_MAX = 10
 WEATHER_RAINY = "rainy"
 WEATHER_CLOUDY = "cloudy"
 WEATHER_SUNNY = "sunny"
 FONT_SIZE = 24
 BOLD_FONT_SIZE = 28
 BORDER_COLOR = (120, 126, 140)
-TRACK_COLOR = (150, 160, 175)
 KNOB_COLOR = (230, 233, 240)
-TRACK_PADDING = 16
-TRACK_THICKNESS = 4
-KNOB_RADIUS = 6
-LABEL_Y_OFFSET = 6
-LABEL_LEFT_OFFSET = 6
-LABEL_RIGHT_OFFSET = 10
 TITLE_Y_OFFSET = 14
 SUN_COLOR = (246, 196, 72)
 SUN_CORE_COLOR = (252, 224, 128)
@@ -46,7 +37,6 @@ class WeatherAdjustmentTile:
         """
         self.rect = pygame.Rect(rect)
         self.border_color = BORDER_COLOR
-        self.track_color = TRACK_COLOR
         self.knob_color = KNOB_COLOR
         self.font = pygame.font.Font(None, FONT_SIZE)
         self.bold_font = pygame.font.Font(None, BOLD_FONT_SIZE)

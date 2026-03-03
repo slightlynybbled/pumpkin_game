@@ -1,10 +1,10 @@
 """Angle adjustment tile UI and input handling."""
 
 import math
-from typing import Tuple
 
 import pygame
 
+from pumpkin.ui_helpers import button_rects, double_click_step
 ANGLE_MIN = 0
 ANGLE_MAX = 90
 ANGLE_START = 45
@@ -44,20 +44,6 @@ class AngleAdjustmentTile:
         self.button_size = max(BUTTON_MIN_SIZE, self.rect.width // BUTTON_WIDTH_RATIO)
         self.button_padding = BUTTON_PADDING
 
-    def _button_rects(self) -> Tuple[pygame.Rect, pygame.Rect]:
-        """Return rectangles for the minus and plus buttons."""
-        minus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
-        plus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
-        minus_rect.topleft = (
-            self.rect.left + self.button_padding,
-            self.rect.bottom - self.button_padding - self.button_size,
-        )
-        plus_rect.topright = (
-            self.rect.right - self.button_padding,
-            self.rect.bottom - self.button_padding - self.button_size,
-        )
-        return minus_rect, plus_rect
-
     def _apply_angle_delta(self, delta: int) -> None:
         """Adjust the angle within bounds.
 
@@ -83,17 +69,25 @@ class AngleAdjustmentTile:
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != MOUSE_LEFT_BUTTON:
             return
 
-        minus_rect, plus_rect = self._button_rects()
+        minus_rect, plus_rect = button_rects(self.rect, self.button_size, self.button_padding)
         if not self.rect.collidepoint(event.pos):
             return
 
         now = pygame.time.get_ticks()
         if plus_rect.collidepoint(event.pos):
-            step = 10 if now - self.last_click_time["plus"] <= self.double_click_ms else 1
+            step = double_click_step(
+                now,
+                self.last_click_time["plus"],
+                self.double_click_ms,
+            )
             self._apply_angle_delta(step)
             self.last_click_time["plus"] = now
         elif minus_rect.collidepoint(event.pos):
-            step = 10 if now - self.last_click_time["minus"] <= self.double_click_ms else 1
+            step = double_click_step(
+                now,
+                self.last_click_time["minus"],
+                self.double_click_ms,
+            )
             self._apply_angle_delta(-step)
             self.last_click_time["minus"] = now
 
@@ -114,7 +108,7 @@ class AngleAdjustmentTile:
         end_x = mid_x + int(arm * math.cos(angle_rad))
         end_y = mid_y - int(arm * math.sin(angle_rad))
         pygame.draw.line(surface, self.line_color, (mid_x, mid_y), (end_x, end_y), LINE_WIDTH)
-        minus_rect, plus_rect = self._button_rects()
+        minus_rect, plus_rect = button_rects(self.rect, self.button_size, self.button_padding)
         pygame.draw.rect(
             surface, self.line_color, minus_rect, BUTTON_BORDER_WIDTH, border_radius=BUTTON_RADIUS
         )

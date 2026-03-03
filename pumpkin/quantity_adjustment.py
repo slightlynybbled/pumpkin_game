@@ -1,7 +1,8 @@
 """Quantity adjustment tile UI and input handling."""
 
 import pygame
-from typing import Tuple
+
+from pumpkin.ui_helpers import button_rects
 
 QUANTITY_MIN = 1
 QUANTITY_MAX = 10
@@ -43,20 +44,6 @@ class QuantityAdjustmentTile:
         self.button_size = max(BUTTON_MIN_SIZE, self.rect.width // BUTTON_WIDTH_RATIO)
         self.button_padding = BUTTON_PADDING
 
-    def _button_rects(self) -> Tuple[pygame.Rect, pygame.Rect]:
-        """Return rectangles for the minus and plus buttons."""
-        minus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
-        plus_rect = pygame.Rect(0, 0, self.button_size, self.button_size)
-        minus_rect.topleft = (
-            self.rect.left + self.button_padding,
-            self.rect.bottom - self.button_padding - self.button_size,
-        )
-        plus_rect.topright = (
-            self.rect.right - self.button_padding,
-            self.rect.bottom - self.button_padding - self.button_size,
-        )
-        return minus_rect, plus_rect
-
     def _apply_quantity_delta(self, delta: int) -> None:
         """Adjust the quantity within bounds.
 
@@ -75,7 +62,7 @@ class QuantityAdjustmentTile:
         """
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != MOUSE_LEFT_BUTTON:
             return
-        minus_rect, plus_rect = self._button_rects()
+        minus_rect, plus_rect = button_rects(self.rect, self.button_size, self.button_padding)
         if plus_rect.collidepoint(event.pos):
             self._apply_quantity_delta(1)
         elif minus_rect.collidepoint(event.pos):
@@ -88,7 +75,7 @@ class QuantityAdjustmentTile:
             surface: Pygame surface to draw on.
         """
         pygame.draw.rect(surface, self.border_color, self.rect, 2)
-        minus_rect, plus_rect = self._button_rects()
+        minus_rect, plus_rect = button_rects(self.rect, self.button_size, self.button_padding)
         pygame.draw.rect(
             surface, self.line_color, minus_rect, BUTTON_BORDER_WIDTH, border_radius=BUTTON_RADIUS
         )

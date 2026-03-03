@@ -1,3 +1,5 @@
+"""Pumpkin growth logic."""
+
 HEALTH_START = 0
 HEALTH_MAX = 10
 WATER_MIN = 0
@@ -8,9 +10,6 @@ PERFECT_WATER = 5
 GROW_RATE_NORMAL = 0.5
 GROW_RATE_PERFECT = 1.0
 STAGNANT_LIMIT = 10.0
-
-
-"""Pumpkin growth logic."""
 
 
 class Pumpkin:
