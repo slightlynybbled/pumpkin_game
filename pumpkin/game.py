@@ -75,9 +75,10 @@ INFO_LINES = (
     "Hold Left/Right: faster adjust",
 )
 INFO_AUTOHIDE_SECONDS = 10.0
-WEATHER_CHANGE_MIN_SECONDS = 2.0
-WEATHER_CHANGE_MAX_SECONDS = 3.0
+WEATHER_CHANGE_MIN_SECONDS = 5.0
+WEATHER_CHANGE_MAX_SECONDS = 15.0
 WEATHER_STATES = (WEATHER_RAINY, WEATHER_CLOUDY, WEATHER_SUNNY)
+GAME_DURATION_SECONDS = 30.0
 
 
 class Game:
@@ -184,19 +185,20 @@ class Game:
                 tile_height,
             )
         )
+        self.clock_tile = ClockTile(
+            (
+                side_x,
+                board_origin[1] + SIDE_TILE_INDEX_CLOCK * (tile_height + self.side_tile_gap),
+                self.side_tile_width,
+                tile_height,
+            )
+        )
         self.side_tiles = [
             self.angle_tile,
             self.force_tile,
             self.quantity_tile,
             self.weather_tile,
-            ClockTile(
-                (
-                    side_x,
-                    board_origin[1] + SIDE_TILE_INDEX_CLOCK * (tile_height + self.side_tile_gap),
-                    self.side_tile_width,
-                    tile_height,
-                )
-            ),
+            self.clock_tile,
         ]
         self.weather_state = WEATHER_CLOUDY
         self.weather_time = 0.0
@@ -205,6 +207,9 @@ class Game:
         )
         self.board.set_weather(self.weather_state)
         self.weather_tile.set_state(self.weather_state)
+        self.game_running = False
+        self.game_over = False
+        self.remaining_seconds = GAME_DURATION_SECONDS
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle input events.
@@ -223,6 +228,18 @@ class Game:
                 self.info_visible = False
                 self.info_visible_time = 0.0
                 return
+        if self.info_button.handle_event(event):
+            self.info_visible = not self.info_visible
+            self.info_visible_time = 0.0
+            return
+        if self.clock_tile.handle_event(event):
+            if self.game_over:
+                self._start_game()
+            elif not self.game_running:
+                self._start_game()
+            return
+        if not self.game_running or self.game_over:
+            return
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 self.fire_shot()
@@ -240,9 +257,6 @@ class Game:
                 self.mammoth.adjust_angle(-KEY_STEP)
             elif event.key == pygame.K_RIGHT:
                 self.mammoth.adjust_angle(KEY_STEP)
-        if self.info_button.handle_event(event):
-            self.info_visible = not self.info_visible
-            self.info_visible_time = 0.0
         self.squirt_button.handle_event(event)
         self.angle_tile.handle_event(event)
         self.force_tile.handle_event(event)
@@ -255,17 +269,29 @@ class Game:
         Args:
             dt: Delta time in seconds.
         """
+        if self.game_running and not self.game_over:
+            self.remaining_seconds = max(0.0, self.remaining_seconds - dt)
+            if self.remaining_seconds <= 0.0:
+                self._end_game()
+        self.clock_tile.set_state(
+            self.game_running,
+            self.remaining_seconds,
+            self._score_text(),
+            self.game_over,
+        )
+        if self.info_visible:
+            self.info_visible_time += dt
+            if self.info_visible_time >= INFO_AUTOHIDE_SECONDS:
+                self.info_visible = False
+                self.info_visible_time = 0.0
+        if not self.game_running or self.game_over:
+            return
         self.board.update(dt)
         self.scoreboard.set_counts(
             self.board.spawned_total, self.board.harvested_total
         )
         self._update_weather(dt)
         self._update_direction_keys(dt)
-        if self.info_visible:
-            self.info_visible_time += dt
-            if self.info_visible_time >= INFO_AUTOHIDE_SECONDS:
-                self.info_visible = False
-                self.info_visible_time = 0.0
         if not self.shots:
             return
         remaining = []
@@ -287,6 +313,41 @@ class Game:
             else:
                 remaining.append(shot)
         self.shots = remaining
+
+    def _start_game(self) -> None:
+        """Start the game timer."""
+        self._reset_board_and_weather()
+        self.game_running = True
+        self.game_over = False
+        self.remaining_seconds = GAME_DURATION_SECONDS
+        self.shots = []
+
+    def _end_game(self) -> None:
+        """Stop gameplay and lock in the score."""
+        self.game_running = False
+        self.game_over = True
+        self.remaining_seconds = 0.0
+
+    def _reset_board_and_weather(self) -> None:
+        """Recreate board state and randomize weather."""
+        self.board = Board(tile_size=self.tile_size, origin=self.board.origin)
+        self.board_rect = pygame.Rect(self.board.origin, (self.board_size, self.board_size))
+        self.weather_state = random.choice(WEATHER_STATES)
+        self.weather_time = 0.0
+        self.weather_next_change = random.uniform(
+            WEATHER_CHANGE_MIN_SECONDS, WEATHER_CHANGE_MAX_SECONDS
+        )
+        self.board.set_weather(self.weather_state)
+        self.weather_tile.set_state(self.weather_state)
+
+    def _score_text(self) -> str:
+        """Format the harvested/total score string."""
+        harvested = float(self.board.harvested_total)
+        spawned = float(self.board.spawned_total)
+        if spawned <= 0:
+            return "0"
+        percent = int((harvested / spawned) * 100)
+        return f"{percent}"
 
     def _update_direction_keys(self, dt: float) -> None:
         """Handle held left/right key repeats after a delay.
