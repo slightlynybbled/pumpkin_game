@@ -1,6 +1,7 @@
 """Board state, water simulation, and pumpkin management."""
 
 import random
+from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import pygame
@@ -35,6 +36,15 @@ WEATHER_SUNNY = "sunny"
 SUNNY_DRY_MULTIPLIER = 2.0
 NORMAL_DRY_MULTIPLIER = 1.0
 RAIN_RATE_PER_SEC = 0.15
+
+
+@dataclass
+class Mark:
+    """Track a temporary mark on the board."""
+
+    center: tuple[int, int]
+    color: tuple[int, int, int]
+    time: float = 0.0
 
 
 class Board:
@@ -75,7 +85,7 @@ class Board:
         self.spawned_total = 0
         self.wet_color = WET_COLOR
         self.dry_color = DRY_COLOR
-        self.marks: list[dict[str, object]] = []
+        self.marks: list[Mark] = []
         self._seed_pumpkins(INITIAL_PUMPKINS)
 
     def _seed_pumpkins(self, count: int) -> None:
@@ -205,7 +215,7 @@ class Board:
             self.tile_size,
             self.tile_size,
         )
-        self.marks.append({"center": rect.center, "color": color, "time": 0.0})
+        self.marks.append(Mark(center=rect.center, color=color))
 
     def _update_marks(self, dt: float) -> None:
         """Advance mark timers and remove expired ones.
@@ -213,10 +223,10 @@ class Board:
         Args:
             dt: Delta time in seconds.
         """
-        remaining = []
+        remaining: list[Mark] = []
         for mark in self.marks:
-            mark["time"] = float(mark["time"]) + dt
-            if mark["time"] < HARVEST_MARK_DURATION:
+            mark.time += dt
+            if mark.time < HARVEST_MARK_DURATION:
                 remaining.append(mark)
         self.marks = remaining
 
@@ -257,8 +267,8 @@ class Board:
         mark_size = int(self.tile_size * MARK_SIZE_RATIO)
         half = mark_size // 2
         for mark in self.marks:
-            cx, cy = mark["center"]
-            color = mark["color"]
+            cx, cy = mark.center
+            color = mark.color
             if color == HARVEST_MARK_COLOR:
                 pygame.draw.line(
                     surface,

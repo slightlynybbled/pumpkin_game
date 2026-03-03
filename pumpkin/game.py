@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Protocol
 
 import pygame
 
@@ -103,6 +103,13 @@ class Shot:
     landing: Optional[tuple[int, int]] = None
     tile: Optional[tuple[int, int]] = None
     marker_pos: Optional[tuple[float, float]] = None
+
+
+class DrawableTile(Protocol):
+    """Represent tiles with a draw method."""
+
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the tile."""
 
 
 class Game:
@@ -224,7 +231,7 @@ class Game:
                 tile_height,
             )
         )
-        self.side_tiles = [
+        self.side_tiles: list[DrawableTile] = [
             self.angle_tile,
             self.force_tile,
             self.quantity_tile,
@@ -546,7 +553,7 @@ class Game:
         """
         ox, oy = origin
         dx, dy = direction
-        candidates = []
+        candidates: list[tuple[float, float, float, tuple[int, int]]] = []
         if dx != 0:
             for edge_x in (self.board_rect.left, self.board_rect.right):
                 t = (edge_x - ox) / dx
@@ -554,7 +561,7 @@ class Game:
                     y = oy + t * dy
                     if self.board_rect.top <= y <= self.board_rect.bottom:
                         normal = (-1, 0) if edge_x == self.board_rect.left else (1, 0)
-                        candidates.append((t, edge_x, y, normal))
+                        candidates.append((t, float(edge_x), float(y), normal))
         if dy != 0:
             for edge_y in (self.board_rect.top, self.board_rect.bottom):
                 t = (edge_y - oy) / dy
@@ -562,7 +569,7 @@ class Game:
                     x = ox + t * dx
                     if self.board_rect.left <= x <= self.board_rect.right:
                         normal = (0, -1) if edge_y == self.board_rect.top else (0, 1)
-                        candidates.append((t, x, edge_y, normal))
+                        candidates.append((t, float(x), float(edge_y), normal))
         if not candidates:
             return origin
         t, x, y, normal = min(candidates, key=lambda item: item[0])
